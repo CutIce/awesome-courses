@@ -1,4 +1,4 @@
-function p = predictOneVsAll(all_theta, X)
+function p = predictOneVsAll(theta, X)
 %PREDICT Predict the label for a trained one-vs-all classifier. The labels 
 %are in the range 1..K, where K = size(all_theta, 1). 
 %  p = PREDICTONEVSALL(all_theta, X) will return a vector of predictions
@@ -9,7 +9,7 @@ function p = predictOneVsAll(all_theta, X)
 %  for 4 examples) 
 
 m = size(X, 1);
-num_labels = size(all_theta, 1);
+num_labels = size(theta, 1);
 
 % You need to return the following variables correctly 
 p = zeros(size(X, 1), 1);
@@ -30,8 +30,9 @@ X = [ones(m, 1) X];
 %       for each row.
 %       
 
+tmp_y = X * theta';
 
-
+[~, p] = max(tmp_y, [], 2);
 
 
 
