@@ -22,19 +22,17 @@ for epsilon = min(pval):stepsize:max(pval)
     %               
     % Note: You can use predictions = (pval < epsilon) to get a binary vector
     %       of 0's and 1's of the outlier predictions
-
-
-
-
-
-
-
-
-
-
-
-
-
+    prediction   = (pval < epsilon);
+    actualTrue   = sum((yval == 1));      % 真的  anomaly examples 数目
+    predictTrue  = sum((prediction == 1));      % 预测的anomaly examples 数目
+                                          % 
+    % 预测anomaly且对的数目
+    truePositive = sum((prediction == yval) & (prediction == 1));
+    
+    prec = truePositive / predictTrue;
+    rec  = truePositive / actualTrue;
+    
+    F1 = 2 * prec * rec / (prec + rec);
     % =============================================================
 
     if F1 > bestF1
