@@ -10,7 +10,21 @@ I wish I can stick to it.
 
 
 
-**PART:**  **Algorithm** 
+### PART:  **Algorithm** 
 
 1. Algorithm Part 1  from Coursera , Princeton 
-2. Mechine Learning in Coursera. Andrew Wu 
+
+
+
+### Mechine Learning
+
+1. Mechine Learning in Coursera. Andrew Wu 
+
+
+
+### Interesting Projects
+
+1. JSON Tutorials, written by Milo Yip 
+
+   [从零开始的JSON库教程](https://zhuanlan.zhihu.com/p/22457315)  适合学完C/C++课后的练习项目
+
