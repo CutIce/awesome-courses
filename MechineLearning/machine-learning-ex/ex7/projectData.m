@@ -18,7 +18,8 @@ Z = zeros(size(X, 1), K);
 %                    projection_k = x' * U(:, k);
 %
 
-
+projectData = X * U;
+Z = projectData(:,1:K);
 
 
 % =============================================================
