@@ -7,8 +7,8 @@ typedef enum { LEPT_NULL, LEPT_FALSE, LEPT_TRUE, LEPT_NUMBER, LEPT_STRING, LEPT_
 
 typedef struct {
     union {
-        struct { char* s; size_t len; }s;  /* string: null-terminated string, string length */
-        double n;                          /* number */
+        struct { char* str; size_t len; }s;  /* string: null-terminated string, string length */
+        double num;                          /* number */
     }u;
     lept_type type;
 }lept_value;

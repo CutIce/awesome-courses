@@ -7,6 +7,9 @@ static int main_ret = 0;
 static int test_count = 0;
 static int test_pass = 0;
 
+
+  #define test_incaild_string
+
 #define EXPECT_EQ_BASE(equality, expect, actual, format) \
     do {\
         test_count++;\
@@ -107,7 +110,7 @@ static void test_parse_number() {
 static void test_parse_string() {
     TEST_STRING("", "\"\"");
     TEST_STRING("Hello", "\"Hello\"");
-#if 0
+#ifdef test_incaild_string
     TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
     TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
 #endif
@@ -163,7 +166,7 @@ static void test_parse_missing_quotation_mark() {
 }
 
 static void test_parse_invalid_string_escape() {
-#if 0
+#ifdef test_incaild_string
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\v\"");
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\'\"");
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_ESCAPE, "\"\\0\"");
@@ -172,7 +175,7 @@ static void test_parse_invalid_string_escape() {
 }
 
 static void test_parse_invalid_string_char() {
-#if 0
+#ifdef test_incaild_string
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_CHAR, "\"\x01\"");
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_CHAR, "\"\x1F\"");
 #endif
@@ -190,10 +193,51 @@ static void test_access_null() {
 static void test_access_boolean() {
     /* \TODO */
     /* Use EXPECT_TRUE() and EXPECT_FALSE() */
+    lept_value v;
+    lept_init(&v);
+
+    lept_set_boolean(&v, 1);
+    EXPECT_TRUE(lept_get_boolean(&v));
+
+    lept_set_boolean(&v, -1);
+    EXPECT_TRUE(lept_get_boolean(&v));
+
+    lept_set_boolean(&v, 10);
+    EXPECT_TRUE(lept_get_boolean(&v));
+
+    lept_set_boolean(&v, -10);
+    EXPECT_TRUE(lept_get_boolean(&v));
+
+    lept_set_boolean(&v, 0);
+    EXPECT_FALSE(lept_get_boolean(&v));
+
 }
 
 static void test_access_number() {
     /* \TODO */
+    lept_value v;
+    lept_init(&v);
+
+    lept_set_number(&v, 1.02);
+    EXPECT_EQ_DOUBLE(1.02, lept_get_number(&v));
+
+    lept_set_number(&v, 1.02e100);
+    EXPECT_EQ_DOUBLE(1.02e100, lept_get_number(&v));
+
+    lept_set_number(&v, 1.02e-1);
+    EXPECT_EQ_DOUBLE(1.02e-1, lept_get_number(&v));
+
+    lept_set_number(&v, 0.0);
+    EXPECT_EQ_DOUBLE(0.0, lept_get_number(&v));
+
+    lept_set_number(&v, 9000000000000000.0);
+    EXPECT_EQ_DOUBLE(9000000000000000.0, lept_get_number(&v));
+
+    lept_set_number(&v, -12.334);
+    EXPECT_EQ_DOUBLE(-12.334, lept_get_number(&v));
+
+    lept_set_number(&v, 0);
+    EXPECT_EQ_DOUBLE((double)0, lept_get_number(&v));
 }
 
 static void test_access_string() {
