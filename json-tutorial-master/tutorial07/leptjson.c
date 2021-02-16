@@ -350,31 +350,30 @@ static void lept_stringify_string(lept_context* c, const char* s, size_t len) {
     assert(s != NULL);
     char *p, *head;
     size_t size,i;
-    static char digits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    unsigned char ch;
+    static char digits[16] = {'0', '1' ,'2' ,'3' ,'4' ,'5' ,'6' ,'7' ,'8' ,'9' ,'A' ,'B' ,'C' ,'D' ,'E' ,'F'};
 
     p = head = lept_context_push(c, size = len*6+2);
-
     *p++ = '"';
-    unsigned char ch;
     for (i = 0; i < len; ++i) {
-        ch = s[i];
+        ch = (unsigned char)s[i];
         switch (ch) {
-            case '\"' : *p++ = '\\'; *p++ = '\"'; break;
-            case '\b' : *p++ = '\\'; *p++ = 'b';  break;
-            case '\r' : *p++ = '\\'; *p++ = 'r';  break;
-            case '\n' : *p++ = '\\'; *p++ = 'n';  break;
-            case '\\' : *p++ = '\\'; *p++ = '\\'; break;
-            case '\t' : *p++ = '\\'; *p++ = 't';  break;
-            case '\f' : *p++ = '\\'; *p++ = 'f';  break;
-            default:
-                if (ch < 0x20) {
-                    *p++ = '\\';
-                    *p++ = 'u';
-                    *p++ = '0';
-                    *p++ = '0';
-                    *p++ = digits[ch >> 4 ];
-                    *p++ = digits[ch & 15];
-                } else *p++ = ch;
+            case '\"': *p++ = '\\'; *p++ = '"';  break;
+            case '\\': *p++ = '\\'; *p++ = '\\'; break;
+            case '\r': *p++ = '\\'; *p++ = 'r';  break;
+            case '\n': *p++ = '\\'; *p++ = 'n';  break;
+            case '\b': *p++ = '\\'; *p++ = 'b';  break;
+            case '\t': *p++ = '\\'; *p++ = 't';  break;
+            case '\f': *p++ = '\\'; *p++ = 'f';  break;
+        default:
+            if (ch < 0x20) {
+                *p++ = '\\';
+                *p++ = 'u';
+                *p++ = '0';
+                *p++ = '0';
+                *p++ = digits[ch >> 4];
+                *p++ = digits[ch & 15];
+            } else *p++ = ch;
         }
     }
     *p++ = '"';
@@ -394,7 +393,7 @@ static void lept_stringify_value(lept_context* c, const lept_value* v) {
             if (v->u.a.size > 0) {
                 lept_stringify_value(c, &v->u.a.e[0]);
             }
-            for (i = 1; i < v->u.a.size; ++i) {
+            for (i = 1; i<v->u.a.size; ++i) {
                 PUTC(c, ',');
                 lept_stringify_value(c, &v->u.a.e[i]);
             }
@@ -403,12 +402,11 @@ static void lept_stringify_value(lept_context* c, const lept_value* v) {
         case LEPT_OBJECT:
             PUTC(c, '{');
             if (v->u.o.size > 0) {
-                lept_stringify_string(c, v->u.o.m[0].k, v->u.o.m[0].klen);
+                lept_stringify_string(c, v->u.o.m[0].k, v->u.o.m->klen);
                 PUTC(c, ':');
                 lept_stringify_value(c, &v->u.o.m[0].v);
             }
-
-            for (i = 1; i < v->u.o.size; ++i) {
+            for (i = 1; i<v->u.o.size; ++i) {
                 PUTC(c, ',');
                 lept_stringify_string(c, v->u.o.m[i].k, v->u.o.m[i].klen);
                 PUTC(c, ':');
