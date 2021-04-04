@@ -481,7 +481,7 @@ lept_type lept_get_type(const lept_value* v) {
 }
 
 int lept_is_equal(const lept_value* lhs, const lept_value* rhs) {
-    size_t i;
+    size_t i,j;
     assert(lhs != NULL && rhs != NULL);
     if (lhs->type != rhs->type)
         return 0;
@@ -499,7 +499,13 @@ int lept_is_equal(const lept_value* lhs, const lept_value* rhs) {
                     return 0;
             return 1;
         case LEPT_OBJECT:
-            /* \todo */
+            /* \Todo */
+            if (lhs->u.o.size != rhs->u.o.size)
+                return 0;
+            for (i = 0; i < lhs->u.o.size; ++i) {
+                if (( j = lept_find_object_index(rhs, lhs->u.o.m[i].k, lhs->u.o.m[i].klen) == -1) || !lept_is_equal(&lhs->u.o.m[i].v, &rhs->u.o.m[j].v))
+                    return 0;
+            }
             return 1;
         default:
             return 1;
@@ -687,6 +693,9 @@ lept_value* lept_find_object_value(lept_value* v, const char* key, size_t klen) 
 lept_value* lept_set_object_value(lept_value* v, const char* key, size_t klen) {
     assert(v != NULL && v->type == LEPT_OBJECT && key != NULL);
     /* \todo */
+    size_t i = (size_t)-1;
+    i = lept_find_object_index(v, key, klen);
+    if (i != -1) return &v->u.o.m[i].v;
     return NULL;
 }
 
