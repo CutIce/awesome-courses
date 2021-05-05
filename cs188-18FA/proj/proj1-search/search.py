@@ -87,6 +87,14 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
+    print("DFS has been Started!")
+
+    stack = util.Stack()
+
+
+
+    print("DFS Done")
+
     util.raiseNotDefined()
 
 def breadthFirstSearch(problem):
