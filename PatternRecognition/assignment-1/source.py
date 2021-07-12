@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.datasets import load_iris
 
 
 def manhattan_distance(x1, x2):
@@ -50,19 +51,30 @@ class ModelKNN:
         
         ##############################
         #    write your code here    #
+        for i in range(len(test_data)):
+            lst = []
+            for j in range(len(self.train_data)):
+                # distance = np.sqrt(np.sum(np.square(test_data[i] - self.train_data[j])))
+                distance = self.get_distance(test_data[i], self.train_data[j])
+                lst.append((j, distance))
+            lst_odr = sorted(lst, key=lambda lst:lst[1], reverse=False)
+            res = [0] * max(20, self.k)
+            for num in range(0, self.k):
+                label = self.train_label[lst_odr[num][0]]
+                res[label] = res[label] + 1
+            predict_labels[i] = res.index(max(res))
         ##############################
-
         return np.array(predict_labels)
 
 
 class AlgorithmKNN:
     
-    def __init__(self, fold_num=5):
+    def __init__(self, max_k=3, fold_num=5):
         """
 
         :param fold_num:  N-fold 交叉验证的中的 N 值
         """
-        self.MAX_K = 7
+        self.MAX_K = max_k
         self.fold_num = fold_num
         self.model = None
     
@@ -166,39 +178,59 @@ def test_case_demo():
 def test_case():
     """
     二维数据样例 D=2, N=100, M=2, 训练数据来自两个高斯分布的混合
-
     :return: train_data(N,D), train_label(N,), test_data(M,D), test_label(M,)
     """
-    
     mean = (1, 2)
     cov = np.array([[73, 0], [0, 22]])
     x = np.random.multivariate_normal(mean, cov, (80,))
-    
     mean = (16, -5)
     cov = np.array([[21.2, 0], [0, 32.1]])
     y = np.random.multivariate_normal(mean, cov, (20,))
-    
     train_data = np.concatenate([x, y])
     train_label = np.concatenate([
         np.zeros((80,), dtype=int),
         np.ones((20,), dtype=int)
     ])
-    
     test_data = np.array([
-        [3, 4],
-        [18, -2]
+        [3, 1], [3, 2], [1, -1], [2, 4], [7, 0], [6, 8], [-5, 0],
+        [18, -5], [5, -13], [16, -12], [17, -5], [13, -2], [19, -5], [17, -4]
     ])
-    test_label = np.array([0, 1])
-    
+    test_label = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
     return train_data, train_label, test_data, test_label
 
 
 def test():
     train_data, train_label, test_data, test_label = test_case()
-    algo = AlgorithmKNN()
+    algo = AlgorithmKNN(max_k=5, fold_num=5)
     algo.fit(train_data, train_label)
     print(np.mean(algo.predict(test_data) == test_label))
 
 
+def test_iris():
+    data = load_iris().data
+    label = load_iris().target
+    np.random.seed(10)
+    np.random.shuffle(data)
+    np.random.seed(10)
+    np.random.shuffle(label)
+
+    train_data = data[:120]
+    train_label = label[:120]
+    test_data = data[120:]
+    test_label = label[120:]
+    print(train_data)
+
+    algo = AlgorithmKNN(max_k=15, fold_num=8)
+    algo.fit(train_data, train_label)
+
+    print(np.mean(algo.predict(test_data) == test_label))
+
+
 if __name__ == "__main__":
+    print("Running Test Function: ")
     test()
+    print("")
+
+    print("Running Test_Iris Function: ")
+    test_iris()
+    print("")
