@@ -1,3 +1,8 @@
+*.zip
+*.tar
+*.ckpt
+
+
 MechineLearning/ex-requirement/
 
 cs188-18FA/ppt/
@@ -26,3 +31,14 @@ PatternRecognition/assignment-2/data/MNIST/raw/train-labels-idx1-ubyte.gz
 6.009-Fundamentals of Programming/labs/zips/lab1_Image_Processing.zip
 6.009-Fundamentals of Programming/labs/zips/lab2_Image_Processing2.zip
 6.009-Fundamentals of Programming/labs/zips/lab3_Bacon_Number.zip
+math/
+/李宏毅-ML-21SP/*.mp4
+/经济学原理-钱颖一
+/MIT-18.06-Linear_Algebra
+/李宏毅-ML-21SP/hw/hw1-Regression/models
+/李宏毅-ML-21SP/hw/hw1-Regression/multi_models
+/李宏毅-ML-21SP/hw/hw1-Regression/*.zip
+/李宏毅-ML-21SP/hw/hw1-Regression/*/png
+/李宏毅-ML-21SP/hw/hw2-Classification/data
+/李宏毅-ML-21SP/hw/hw3-CNN/food-11
+
