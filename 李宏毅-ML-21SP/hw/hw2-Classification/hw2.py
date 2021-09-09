@@ -86,7 +86,12 @@ print('Size of validation set: {}'.format(val_x.shape))
 
 """Create a data loader from the dataset, feel free to tweak the variable `BATCH_SIZE` here."""
 
-BATCH_SIZE = 64
+num_epoch = 20              # number of training epoch
+learning_rate = 0.0001        # learning rate
+model_path = './model.ckpt'
+BATCH_SIZE = 2048
+weight_decay_l1 = 0
+weight_decay_l2 = 0.001
 
 from torch.utils.data import DataLoader
 
@@ -116,40 +121,59 @@ import torch.nn as nn
 class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
-        self.layer1 = nn.Linear(429, 1024)
-        self.layer2 = nn.Linear(1024, 512)
-        self.layer3 = nn.Linear(512, 512)
-        self.layer4 = nn.Linear(512, 256)
-        self.layer5 = nn.Linear(256, 256)
-        self.out = nn.Linear(256, 39)
 
-        self.act_fn = nn.Sigmoid()
+        self.l1 = nn.Linear(429, 2048)
+        self.l2 = nn.Linear(2048, 2048)
+        self.l3 = nn.Linear(2048, 2048)
+        self.l4 = nn.Linear(2048, 1024)
+        self.l5 = nn.Linear(1024, 512)
+        self.l6 = nn.Linear(512, 128)
+
+        self.bn1 = nn.BatchNorm1d(2048)
+        self.bn2 = nn.BatchNorm1d(2048)
+        self.bn3 = nn.BatchNorm1d(2048)
+        self.bn4 = nn.BatchNorm1d(1024)
+        self.bn5 = nn.BatchNorm1d(512)
+        self.bn6 = nn.BatchNorm1d(128)
+
+        self.out = nn.Linear(128, 39)
+
+        self.drop = nn.Dropout(0.5)
         self.ac1 = nn.ReLU()
 
-        self.d1 = nn.Dropout(p=0.3)
-        self.d2 = nn.Dropout(p=0.3)
-        self.d3 = nn.Dropout(p=0.3)
-        self.d4 = nn.Dropout(p=0.3)
-
     def forward(self, x):
-        x = self.layer1(x)
+        x = self.l1(x)
         x = self.ac1(x)
-
-        x = self.layer2(x)
-        x = self.ac1(x)
-
-        x = self.layer3(x)
-        x = self.ac1(x)
-
-        x = self.layer4(x)
-        x = self.ac1(x)
-
-        x = self.layer5(x)
-        x = self.ac1(x)
-
-        x = self.out(x)
+        x = self.bn1(x)
+        x = self.drop(x)
         
-        return x
+        x = self.l2(x)
+        x = self.ac1(x)
+        x = self.bn2(x)
+        x = self.drop(x)
+        
+        x = self.l3(x)
+        x = self.ac1(x)
+        x = self.bn3(x)
+        x = self.drop(x)
+        
+        x = self.l4(x)
+        x = self.ac1(x)
+        x = self.bn4(x)
+        x = self.drop(x)
+        
+        x = self.l5(x)
+        x = self.ac1(x)
+        x = self.bn5(x)
+        x = self.drop(x)
+        
+        x = self.l6(x)
+        x = self.ac1(x)
+        x = self.bn6(x)
+        x = self.drop(x)
+
+        y = self.out(x)
+        return y
 
 """## Training"""
 
@@ -178,25 +202,31 @@ same_seeds(0)
 device = get_device()
 print(f'DEVICE: {device}')
 
-# training parameters
-num_epoch = 10               # number of training epoch
-learning_rate = 0.0001      # learning rate
-
-# the path where checkpoint saved
-model_path = './model.ckpt'
 
 # create model, define a loss function, and optimizer
 model = Classifier().to(device)
-ckpt = torch.load('./model.ckpt', map_location='cuda')
+ckpt = torch.load('./model.ckpt', map_location=device)
 model.load_state_dict(ckpt)
 
 criterion = nn.CrossEntropyLoss() 
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.001, eps=1e-10)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.8, 0.9))
 
 # start training
+def calc_regularization(model, weight_decay_l1, weight_decay_l2):
+    l1 = 0
+    l2 = 0
+    for name, param in model.named_parameters():
+        if name in ['weight']:
+            l1 += torch.sum(abs(param))
+            l2 += torch.sum(torch.pow(param, 2))
+    return weight_decay_l1 * l1 + weight_decay_l2 * l2
+
 
 best_acc = 0.0
 for epoch in range(num_epoch):
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+
     train_acc = 0.0
     train_loss = 0.0
     val_acc = 0.0
@@ -211,7 +241,8 @@ for epoch in range(num_epoch):
         outputs = model(inputs) 
         batch_loss = criterion(outputs, labels)
         _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
-        batch_loss.backward() 
+
+        (batch_loss + calc_regularization(model, weight_decay_l1, weight_decay_l2)).backward()
         optimizer.step() 
 
         train_acc += (train_pred.cpu() == labels.cpu()).sum().item()
