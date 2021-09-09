@@ -1,7 +1,8 @@
 *.zip
 *.tar
 *.ckpt
-
+*.json
+*/data/*
 
 MechineLearning/ex-requirement/
 
