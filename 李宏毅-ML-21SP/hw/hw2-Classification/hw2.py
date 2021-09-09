@@ -86,11 +86,11 @@ print('Size of validation set: {}'.format(val_x.shape))
 
 """Create a data loader from the dataset, feel free to tweak the variable `BATCH_SIZE` here."""
 
-num_epoch = 20              # number of training epoch
+num_epoch = 10              # number of training epoch
 learning_rate = 0.0001        # learning rate
 model_path = './model.ckpt'
 BATCH_SIZE = 2048
-weight_decay_l1 = 0
+weight_decay_l1 = 0.00001
 weight_decay_l2 = 0.001
 
 from torch.utils.data import DataLoader
@@ -122,21 +122,25 @@ class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
 
-        self.l1 = nn.Linear(429, 2048)
-        self.l2 = nn.Linear(2048, 2048)
+        self.l1 = nn.Linear(429, 4096)
+        self.l2 = nn.Linear(4096, 2048)
         self.l3 = nn.Linear(2048, 2048)
         self.l4 = nn.Linear(2048, 1024)
         self.l5 = nn.Linear(1024, 512)
-        self.l6 = nn.Linear(512, 128)
+        self.l6 = nn.Linear(512, 256)
+        self.l7 = nn.Linear(256, 256)
+        self.l8 = nn.Linear(256, 256)
 
-        self.bn1 = nn.BatchNorm1d(2048)
+        self.bn1 = nn.BatchNorm1d(4096)
         self.bn2 = nn.BatchNorm1d(2048)
         self.bn3 = nn.BatchNorm1d(2048)
         self.bn4 = nn.BatchNorm1d(1024)
         self.bn5 = nn.BatchNorm1d(512)
-        self.bn6 = nn.BatchNorm1d(128)
+        self.bn6 = nn.BatchNorm1d(256)
+        self.bn7 = nn.BatchNorm1d(256)
+        self.bn8 = nn.BatchNorm1d(256)
 
-        self.out = nn.Linear(128, 39)
+        self.out = nn.Linear(256, 39)
 
         self.drop = nn.Dropout(0.5)
         self.ac1 = nn.ReLU()
@@ -170,6 +174,16 @@ class Classifier(nn.Module):
         x = self.l6(x)
         x = self.ac1(x)
         x = self.bn6(x)
+        x = self.drop(x)
+
+        x = self.l7(x)
+        x = self.ac1(x)
+        x = self.bn7(x)
+        x = self.drop(x)
+
+        x = self.l8(x)
+        x = self.ac1(x)
+        x = self.bn8(x)
         x = self.drop(x)
 
         y = self.out(x)
@@ -209,7 +223,7 @@ ckpt = torch.load('./model.ckpt', map_location=device)
 model.load_state_dict(ckpt)
 
 criterion = nn.CrossEntropyLoss() 
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.8, 0.9))
+# optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.8, 0.9))
 
 # start training
 def calc_regularization(model, weight_decay_l1, weight_decay_l2):
@@ -224,9 +238,10 @@ def calc_regularization(model, weight_decay_l1, weight_decay_l2):
 
 best_acc = 0.0
 for epoch in range(num_epoch):
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-
+    if epoch == 0:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    if epoch == 5:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
     train_acc = 0.0
     train_loss = 0.0
     val_acc = 0.0
