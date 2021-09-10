@@ -1,6 +1,8 @@
 *.zip
 *.tar
 *.ckpt
+*.pth
+
 *.json
 */data/*
 
@@ -43,3 +45,4 @@ math/
 /李宏毅-ML-21SP/hw/hw2-Classification/data
 /李宏毅-ML-21SP/hw/hw3-CNN/food-11
 
+李宏毅-ML-21SP/hw/hw3-CNN/test.py
