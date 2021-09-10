@@ -100,6 +100,8 @@ test_tfm = transforms.Compose([
 # But the GPU memory is limited, so please adjust it carefully.
 batch_size = 64
 
+path = 'food-11/training/labeled'
+
 # Construct datasets.
 # The argument "loader" tells how torchvision reads the data.
 train_set = DatasetFolder("food-11/training/labeled", loader=lambda x: Image.open(x), extensions="jpg", transform=train_tfm)
@@ -209,7 +211,7 @@ def get_pseudo_labels(dataset, model, threshold=0.65):
     softmax = nn.Softmax(dim=-1)
 
     # Iterate over the dataset by batches.
-    for batch in tqdm(data_loader):
+    for batch in enumerate(data_loader):
         img, _ = batch
 
         # Forward the data
@@ -241,7 +243,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0003, weight_decay=1e-5)
 
 # The number of training epochs.
-n_epochs = 80
+n_epochs = 20
 
 # Whether to do semi-supervised learning.
 do_semi = False
@@ -268,7 +270,7 @@ for epoch in range(n_epochs):
     train_accs = []
 
     # Iterate the training set by batches.
-    for batch in tqdm(train_loader):
+    for batch in enumerate(train_loader):
 
         # A batch consists of image data and corresponding labels.
         imgs, labels = batch
@@ -315,7 +317,7 @@ for epoch in range(n_epochs):
     valid_accs = []
 
     # Iterate the validation set by batches.
-    for batch in tqdm(valid_loader):
+    for batch in enumerate(valid_loader):
 
         # A batch consists of image data and corresponding labels.
         imgs, labels = batch
@@ -374,7 +376,7 @@ model.eval()
 predictions = []
 
 # Iterate the testing set by batches.
-for batch in tqdm(test_loader):
+for batch in enumerate(test_loader):
     # A batch consists of image data and corresponding labels.
     # But here the variable "labels" is useless since we do not have the ground-truth.
     # If printing out the labels, you will find that it is always 0.
