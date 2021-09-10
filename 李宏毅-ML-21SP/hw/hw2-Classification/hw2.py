@@ -42,6 +42,15 @@ Load the training and testing data from the `.npy` file (NumPy array).
 
 import numpy as np
 
+VAL_RATIO = 0.1
+num_epoch = 3               # number of training epoch
+learning_rate = 0.009        # learning rate
+model_path = './model.ckpt'
+BATCH_SIZE = 1024
+weight_decay_l1 = 0.00001
+weight_decay_l2 = 0.0003
+
+
 print('Loading data ...')
 
 data_root='./data/timit/'
@@ -75,10 +84,29 @@ class TIMITDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-"""Split the labeled data into a training set and a validation set, you can modify the variable `VAL_RATIO` to change the ratio of validation data."""
-# 
 
-VAL_RATIO = 0.2
+class TimitDataset(Dataset):
+    def __init__(self, X, y=None):
+        self.data = torch.from_numpy(X).float()
+        self.data = self.data.view(-1, 11, 39)
+        print(self.data.shape)
+
+        if y is not None:
+            y = y.astype(np.int)
+            self.label = torch.LongTensor(y)
+        else:
+            self.label = None
+
+    def __getitem__(self, idx):
+        if self.label is not None:
+            return self.data[idx], self.label[idx]
+        else:
+            return self.data[idx]
+
+    def __len__(self):
+        return len(self.data)
+"""Split the labeled data into a training set and a validation set, you can modify the variable `VAL_RATIO` to change the ratio of validation data."""
+#
 
 percent = int(train.shape[0] * (1 - VAL_RATIO))
 train_x, train_y, val_x, val_y = train[:percent], train_label[:percent], train[percent:], train_label[percent:]
@@ -87,19 +115,18 @@ print('Size of validation set: {}'.format(val_x.shape))
 
 """Create a data loader from the dataset, feel free to tweak the variable `BATCH_SIZE` here."""
 
-num_epoch = 10              # number of training epoch
-learning_rate = 0.0001        # learning rate
-model_path = './model.ckpt'
-BATCH_SIZE = 2048
-weight_decay_l1 = 0.00001
-weight_decay_l2 = 0.001
 
 from torch.utils.data import DataLoader
 
-train_set = TIMITDataset(train_x, train_y)
-val_set = TIMITDataset(val_x, val_y)
+# train_set = TIMITDataset(train_x, train_y)
+# val_set = TIMITDataset(val_x, val_y)
+# train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True) #only shuffle the training data
+# val_loader = DataLoader(val_set, batch_size=BATCH_SIZE, shuffle=False)
+train_set = TimitDataset(train_x, train_y)
+val_set = TimitDataset(val_x, val_y)
 train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True) #only shuffle the training data
 val_loader = DataLoader(val_set, batch_size=BATCH_SIZE, shuffle=False)
+
 
 """Cleanup the unneeded variables to save memory.<br>
 
@@ -123,7 +150,13 @@ class Classifier(nn.Module):
     def __init__(self):
         super(Classifier, self).__init__()
 
-        self.l1 = nn.Linear(429, 4096)
+        self.layer1 = nn.Linear(39, 256)
+        self.ln1 = nn.LayerNorm((11, 256))
+
+        self.layer2 = nn.Linear(256, 128)
+        self.ln2 = nn.LayerNorm((11, 128))
+
+        self.l1 = nn.Linear(11*128, 4096)
         self.l2 = nn.Linear(4096, 2048)
         self.l3 = nn.Linear(2048, 2048)
         self.l4 = nn.Linear(2048, 1024)
@@ -143,52 +176,106 @@ class Classifier(nn.Module):
 
         self.out = nn.Linear(256, 39)
 
-        self.drop = nn.Dropout(0.5)
-        self.ac1 = nn.ReLU()
+        self.drop_small = nn.Dropout(0.3)
+        self.drop_large = nn.Dropout(0.5)
+        self.ac = nn.ReLU()
+        self.flatten = nn.Flatten()
 
+# layerNorm forward:
     def forward(self, x):
+        x = self.layer1(x)
+        x = self.ln1(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
+        
+        x = self.layer2(x)
+        x = self.ln2(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
+
+        x = self.flatten(x)
+
         x = self.l1(x)
-        x = self.ac1(x)
         x = self.bn1(x)
-        x = self.drop(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
         
         x = self.l2(x)
-        x = self.ac1(x)
         x = self.bn2(x)
-        x = self.drop(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
         
         x = self.l3(x)
-        x = self.ac1(x)
         x = self.bn3(x)
-        x = self.drop(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
         
         x = self.l4(x)
-        x = self.ac1(x)
         x = self.bn4(x)
-        x = self.drop(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
         
         x = self.l5(x)
-        x = self.ac1(x)
         x = self.bn5(x)
-        x = self.drop(x)
-        
+        x = self.ac(x)
+        x = self.drop_large(x)
+
         x = self.l6(x)
-        x = self.ac1(x)
         x = self.bn6(x)
-        x = self.drop(x)
-
-        x = self.l7(x)
-        x = self.ac1(x)
-        x = self.bn7(x)
-        x = self.drop(x)
-
-        x = self.l8(x)
-        x = self.ac1(x)
-        x = self.bn8(x)
-        x = self.drop(x)
+        x = self.ac(x)
+        x = self.drop_large(x)
+        
+        # x = self.l7(x)
+        # x = self.bn7(x)
+        # x = self.ac(x)
+        # x = self.drop_large(x)
 
         y = self.out(x)
         return y
+
+    # def forward(self, x):
+    #     x = self.l1(x)
+    #     x = self.ac1(x)
+    #     x = self.bn1(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l2(x)
+    #     x = self.ac1(x)
+    #     x = self.bn2(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l3(x)
+    #     x = self.ac1(x)
+    #     x = self.bn3(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l4(x)
+    #     x = self.ac1(x)
+    #     x = self.bn4(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l5(x)
+    #     x = self.ac1(x)
+    #     x = self.bn5(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l6(x)
+    #     x = self.ac1(x)
+    #     x = self.bn6(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l7(x)
+    #     x = self.ac1(x)
+    #     x = self.bn7(x)
+    #     x = self.drop(x)
+    #
+    #     x = self.l8(x)
+    #     x = self.ac1(x)
+    #     x = self.bn8(x)
+    #     x = self.drop(x)
+    #
+    #     y = self.out(x)
+    #     return y
 
 """## Training"""
 
@@ -241,8 +328,13 @@ best_acc = 0.0
 for epoch in range(num_epoch):
     if epoch == 0:
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    if epoch == 5:
+    if epoch == 20:
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
+    if epoch == 35:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/10)
+    if epoch == 50:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/30)
+
     train_acc = 0.0
     train_loss = 0.0
     val_acc = 0.0
@@ -303,7 +395,7 @@ Create a testing dataset, and load model from the saved checkpoint.
 """
 
 # create testing dataset
-test_set = TIMITDataset(test, None)
+test_set = TimitDataset(test, None)
 test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False)
 
 # create model and load weights from checkpoint
