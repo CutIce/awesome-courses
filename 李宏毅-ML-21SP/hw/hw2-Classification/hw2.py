@@ -43,8 +43,8 @@ Load the training and testing data from the `.npy` file (NumPy array).
 import numpy as np
 
 VAL_RATIO = 0.1
-num_epoch = 3               # number of training epoch
-learning_rate = 0.009        # learning rate
+num_epoch = 30               # number of training epoch
+learning_rate = 0.01        # learning rate
 model_path = './model.ckpt'
 BATCH_SIZE = 1024
 weight_decay_l1 = 0.00001
@@ -330,10 +330,10 @@ for epoch in range(num_epoch):
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     if epoch == 20:
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
-    if epoch == 35:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/10)
-    if epoch == 50:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/30)
+    # if epoch == 35:
+    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/10)
+    # if epoch == 50:
+    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/30)
 
     train_acc = 0.0
     train_loss = 0.0
