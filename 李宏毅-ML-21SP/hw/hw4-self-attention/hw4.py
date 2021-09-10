@@ -27,8 +27,8 @@ Original file is located at
 - Data is [here](https://drive.google.com/file/d/1gaFy8RaQVUEXo2n0peCBR5gYKCB-mNHc/view?usp=sharing)
 """
 
-!gdown --id 'paste your own data download link' --output Dataset.zip
-!unzip Dataset.zip
+# !gdown --id 'paste your own data download link' --output Dataset.zip
+# !unzip Dataset.zip
 
 """# Data
 
@@ -362,7 +362,7 @@ from torch.utils.data import DataLoader, random_split
 def parse_args():
   """arguments"""
   config = {
-    "data_dir": "./Dataset",
+    "data_dir": "./data",
     "save_path": "model.ckpt",
     "batch_size": 32,
     "n_workers": 8,
@@ -450,10 +450,6 @@ def main(
 
   pbar.close()
 
-
-if __name__ == "__main__":
-  main(**parse_args())
-
 """# Inference
 
 ## Dataset of inference
@@ -503,7 +499,7 @@ from torch.utils.data import DataLoader
 def parse_args():
   """arguments"""
   config = {
-    "data_dir": "./Dataset",
+    "data_dir": "./data",
     "model_path": "./model.ckpt",
     "output_path": "./output.csv",
   }
@@ -553,6 +549,5 @@ def main(
     writer = csv.writer(csvfile)
     writer.writerows(results)
 
-
-if __name__ == "__main__":
-  main(**parse_args())
+# config = parse_args()
+# main(config['data_dir'], config['model_path'], config['output_path'])
