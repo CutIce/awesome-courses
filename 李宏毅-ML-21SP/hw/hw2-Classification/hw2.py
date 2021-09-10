@@ -43,10 +43,10 @@ Load the training and testing data from the `.npy` file (NumPy array).
 import numpy as np
 
 VAL_RATIO = 0.1
-num_epoch = 30               # number of training epoch
-learning_rate = 0.01        # learning rate
+num_epoch = 3               # number of training epoch
+learning_rate = 0.005        # learning rate
 model_path = './model.ckpt'
-BATCH_SIZE = 1024
+BATCH_SIZE = 8192
 weight_decay_l1 = 0.00001
 weight_decay_l2 = 0.0003
 
@@ -327,13 +327,14 @@ def calc_regularization(model, weight_decay_l1, weight_decay_l2):
 best_acc = 0.0
 for epoch in range(num_epoch):
     if epoch == 0:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    if epoch == 20:
+        # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    if epoch == 10:
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
-    # if epoch == 35:
-    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/10)
-    # if epoch == 50:
-    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/30)
+    if epoch == 25:
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/9)
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.009, momentum=0.9)
 
     train_acc = 0.0
     train_loss = 0.0
