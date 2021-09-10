@@ -176,7 +176,7 @@ class COVID19Dataset(Dataset):
 
         both = [40, 41, 42, 43, 51, 56, 57, 58, 59, 60, 61, 69, 74, 75, 76, 77, 78, 79, 87, 92]
 
-        feats = list_state + both_20
+        feats = list_state + both_50
 
         if mode == 'test':
             # Testing data
@@ -264,18 +264,53 @@ class NeuralNet(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(32, 1)
         )
-
+        self.l1 = nn.Linear(input_dim, 256)
+        self.l2 = nn.Linear(256, 256)
+        self.l3 = nn.Linear(256, 128)
+        self.l4 = nn.Linear(128, 64)
+        
+        self.bn1 = nn.BatchNorm1d(256)
+        self.bn2 = nn.BatchNorm1d(256)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.bn4 = nn.BatchNorm1d(64)
+        
+        self.ac = nn.ReLU()
+        self.out = nn.Linear(128, 1)
+        self.drop = nn.Dropout(0.5)
         # Mean squared error loss
         self.criterion = nn.MSELoss(reduction='mean')
 
     def forward(self, x):
         ''' Given input of size (batch_size x input_dim), compute output of the network '''
-        return self.net(x).squeeze(1)
+        x = self.l1(x)
+        x = self.ac(x)
+        x = self.bn1(x)
+        x = self.drop(x)
+        
+        x = self.l2(x)
+        x = self.ac(x)
+        x = self.bn2(x)
+        x = self.drop(x)
+        
+        x = self.l3(x)
+        x = self.ac(x)
+        x = self.bn3(x)
+        x = self.drop(x)
+        
+        # x = self.l4(x)
+        # x = self.ac(x)
+        # x = self.bn4(x)
+        # x = self.drop(x)
+        
+        y = self.out(x)
+        return y.squeeze(1)
+        # return self.net(x).squeeze(1)
 
-    def cal_loss(self, pred, target, print_flag=False):
+    def cal_loss(self, pred, target, w_l1, w_l2, print_flag=False):
         ''' Calculate loss '''
         # TODO: you may implement L1/L2 regularization here
-        loss = 0
+        loss1 = 0
+        loss2 = 0
         # print('-------------------------------------------------')
         # for para in self.parameters():
         #         # loss += torch.sum(torch.pow(para, 2))
@@ -284,16 +319,18 @@ class NeuralNet(nn.Module):
         #     # print(para)
         for name, para in self.named_parameters():
             # print(name, type(name), len(para))
-            if 'weight' in name:
-                loss += torch.sum(torch.pow(para, 2))
+            if name in ['weight']:
+                loss1 += torch.sum(abs(para))
+                loss2 += torch.sum(torch.pow(para, 2))
                 # print('ok', loss)
         # print('--------------------------------------------------------------------------------------')
-        loss1 = self.criterion(pred, target)
+        loss = self.criterion(pred, target)
         if print_flag:
-            print('criterion:  ',  type(loss1), loss1)
-            print('l2:      :  ', type(loss), loss)
+            print('criterion:  ',  type(loss1), loss)
+            print('l1:      :  ', type(loss), loss1)
+            print('l2:      :  ', type(loss), loss2)
         # return loss1 + 0.0001 * loss
-        return loss1
+        return loss + w_l1 * loss1 + w_l2 * loss2, loss
 """# **Train/Dev/Test**
 
 ## **Training**
@@ -307,8 +344,8 @@ def train(tr_set, dv_set, model, config, device):
     # Setup optimizer
     # optimizer = getattr(torch.optim, config['optimizer'])(
     #     model.parameters(), **config['optim_hparas'])
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.99), eps=1e-08, weight_decay=0.001)
-
+    # optimizer = torch.optim.Adam(model.parameters(), lr=0.00001, betas=(0.9, 0.99), eps=1e-08)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.00003, momentum=0.9)
     min_mse = 1000.
     loss_record = {'train': [], 'dev': []}      # for recording training loss
     early_stop_cnt = 0
@@ -320,8 +357,8 @@ def train(tr_set, dv_set, model, config, device):
             optimizer.zero_grad()               # set gradient to zero
             x, y = x.to(device), y.to(device)   # move data to device (cpu/cuda)
             pred = model(x)                     # forward pass (compute output)
-            mse_loss = model.cal_loss(pred, y, print_flag=False)  # compute loss
-            mse_loss.backward()                 # compute gradient (backpropagation)
+            all_loss, mse_loss = model.cal_loss(pred, y, w_l1=config['weight_decay_l1'], w_l2=config['weight_decay_l2'], print_flag=False)  # compute loss
+            all_loss.backward()                 # compute gradient (backpropagation)
             optimizer.step()                    # update model with optimizer
             loss_record['train'].append(mse_loss.detach().cpu().item())
 
@@ -357,7 +394,7 @@ def dev(dv_set, model, device):
         x, y = x.to(device), y.to(device)       # move data to device (cpu/cuda)
         with torch.no_grad():                   # disable gradient calculation
             pred = model(x)                     # forward pass (compute output)
-            mse_loss = model.cal_loss(pred, y, print_flag=False)  # compute loss
+            all_loss, mse_loss = model.cal_loss(pred, y, w_l1=0, w_l2=0, print_flag=False)  # compute loss
         total_loss += mse_loss.detach().cpu().item() * len(x)  # accumulate loss
     total_loss = total_loss / len(dv_set.dataset)              # compute averaged loss
     print('Loss:  ', total_loss)
@@ -388,15 +425,17 @@ target_only = False                   # TODO: Using 40 states & 2 tested_positiv
 
 # TODO: How to tune these hyper-parameters to improve your model's performance?
 config = {
-    'n_epochs': 5000,                # maximum number of epochs
-    'batch_size': 32,                # mini-batch size for dataloader
+    'n_epochs': 2000,                # maximum number of epochs
+    'batch_size': 64,                # mini-batch size for dataloader
     'optimizer': 'Adam',             # optimization algorithm (optimizer in torch.optim)
     'optim_hparas': {                # hyper-parameters for the optimizer (depends on which optimizer you are using)
         'lr': 0.0001,                # learning rate of SGD
         'momentum': 0.85,            # momentum for SGD
     },
     'early_stop': 300,               # early stopping epochs (the number epochs since your model's last improvement)
-    'save_path': 'models/model.pth'  # your model will be saved here
+    'save_path': 'models/model.pth',  # your model will be saved here
+    'weight_decay_l1': 0.00005,
+    'weight_decay_l2': 0.001,
 }
 
 """# **Load data and model**"""
