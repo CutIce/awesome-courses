@@ -85,6 +85,7 @@ train_tfm = transforms.Compose([
     transforms.Resize((128, 128)),
     # You may add some transforms here.
     # ToTensor() should be the last one of the transforms.
+
     transforms.ToTensor(),
 ])
 
@@ -110,8 +111,8 @@ unlabeled_set = DatasetFolder("food-11/training/unlabeled", loader=lambda x: Ima
 test_set = DatasetFolder("food-11/testing", loader=lambda x: Image.open(x), extensions="jpg", transform=test_tfm)
 
 # Construct data loaders.
-train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
-valid_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
+train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
+valid_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
 test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
 """## **Model**
@@ -259,7 +260,7 @@ for epoch in range(n_epochs):
         # Construct a new dataset and a data loader for training.
         # This is used in semi-supervised learning only.
         concat_dataset = ConcatDataset([train_set, pseudo_set])
-        train_loader = DataLoader(concat_dataset, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
+        train_loader = DataLoader(concat_dataset, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
     # ---------- Training ----------
     # Make sure the model is in train mode before training.
@@ -270,7 +271,7 @@ for epoch in range(n_epochs):
     train_accs = []
 
     # Iterate the training set by batches.
-    for batch in enumerate(train_loader):
+    for batch in tqdm(train_loader):
 
         # A batch consists of image data and corresponding labels.
         imgs, labels = batch
@@ -317,7 +318,7 @@ for epoch in range(n_epochs):
     valid_accs = []
 
     # Iterate the validation set by batches.
-    for batch in enumerate(valid_loader):
+    for batch in tqdm(valid_loader):
 
         # A batch consists of image data and corresponding labels.
         imgs, labels = batch
@@ -376,7 +377,7 @@ model.eval()
 predictions = []
 
 # Iterate the testing set by batches.
-for batch in enumerate(test_loader):
+for batch in tqdm(test_loader):
     # A batch consists of image data and corresponding labels.
     # But here the variable "labels" is useless since we do not have the ground-truth.
     # If printing out the labels, you will find that it is always 0.

@@ -43,10 +43,10 @@ Load the training and testing data from the `.npy` file (NumPy array).
 import numpy as np
 
 VAL_RATIO = 0.1
-num_epoch = 3               # number of training epoch
-learning_rate = 0.005        # learning rate
+num_epoch = 30               # number of training epoch
+learning_rate = 0.009        # learning rate
 model_path = './model.ckpt'
-BATCH_SIZE = 8192
+BATCH_SIZE = 2048
 weight_decay_l1 = 0.00001
 weight_decay_l2 = 0.0003
 
@@ -133,10 +133,10 @@ val_loader = DataLoader(val_set, batch_size=BATCH_SIZE, shuffle=False)
 **notes: if you need to use these variables later, then you may remove this block or clean up unneeded variables later<br>the data size is quite huge, so be aware of memory usage in colab**
 """
 
-# import gc
-#
-# del train, train_label, train_x, train_y, val_x, val_y
-# gc.collect()
+import gc
+
+del train, train_label, train_x, train_y, val_x, val_y
+gc.collect()
 
 """## Create Model
 
@@ -156,9 +156,12 @@ class Classifier(nn.Module):
         self.layer2 = nn.Linear(256, 128)
         self.ln2 = nn.LayerNorm((11, 128))
 
+        # self.layer3 = nn.Linear(128, 128)
+        # self.ln3 = nn.LayerNorm((11, 128))
+
         self.l1 = nn.Linear(11*128, 4096)
         self.l2 = nn.Linear(4096, 2048)
-        self.l3 = nn.Linear(2048, 2048)
+        # self.l3 = nn.Linear(2048, 2048)
         self.l4 = nn.Linear(2048, 1024)
         self.l5 = nn.Linear(1024, 512)
         self.l6 = nn.Linear(512, 256)
@@ -177,7 +180,7 @@ class Classifier(nn.Module):
         self.out = nn.Linear(256, 39)
 
         self.drop_small = nn.Dropout(0.3)
-        self.drop_large = nn.Dropout(0.5)
+        self.drop_large = nn.Dropout(0.2)
         self.ac = nn.ReLU()
         self.flatten = nn.Flatten()
 
@@ -193,6 +196,11 @@ class Classifier(nn.Module):
         x = self.ac(x)
         x = self.drop_large(x)
 
+        # x = self.layer3(x)
+        # x = self.ln3(x)
+        # x = self.ac(x)
+        # x = self.drop_large(x)
+
         x = self.flatten(x)
 
         x = self.l1(x)
@@ -205,10 +213,10 @@ class Classifier(nn.Module):
         x = self.ac(x)
         x = self.drop_large(x)
         
-        x = self.l3(x)
-        x = self.bn3(x)
-        x = self.ac(x)
-        x = self.drop_large(x)
+        # x = self.l3(x)
+        # x = self.bn3(x)
+        # x = self.ac(x)
+        # x = self.drop_large(x)
         
         x = self.l4(x)
         x = self.bn4(x)
@@ -307,8 +315,8 @@ print(f'DEVICE: {device}')
 
 # create model, define a loss function, and optimizer
 model = Classifier().to(device)
-ckpt = torch.load('./model.ckpt', map_location=device)
-model.load_state_dict(ckpt)
+# ckpt = torch.load('./model.ckpt')
+# model.load_state_dict(ckpt)
 
 criterion = nn.CrossEntropyLoss() 
 # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.8, 0.9))
@@ -326,15 +334,16 @@ def calc_regularization(model, weight_decay_l1, weight_decay_l2):
 
 best_acc = 0.0
 for epoch in range(num_epoch):
-    if epoch == 0:
-        # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    if epoch == 10:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
-    if epoch == 25:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/9)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.009)
+    # if epoch == 0:
+    #     # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    #     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    # if epoch == 10:
+    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/3)
+    # if epoch == 25:
+    #     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate/9)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.009, momentum=0.9)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.009, momentum=0.9)
 
     train_acc = 0.0
     train_loss = 0.0
@@ -426,3 +435,4 @@ with open('prediction.csv', 'w') as f:
     f.write('Id,Class\n')
     for i, y in enumerate(predict):
         f.write('{},{}\n'.format(i, y))
+    print("Finish predicting")
