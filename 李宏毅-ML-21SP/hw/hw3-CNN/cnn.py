@@ -20,6 +20,7 @@ train_tsfm = transforms.Compose([
         transforms.AutoAugment(transforms.AutoAugmentPolicy.SVHN)
     ]),
     transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomVerticalFlip(p=0.3),
     transforms.ColorJitter(brightness=0.5),
     transforms.RandomAffine(degrees=30, translate=(0.2, 0.2), scale=(0.8, 1.2)),
     # transforms.RandomErasing(p=0.2, scale=(0.01, 0.1), ratio=(0.3, 3.3)),
@@ -40,13 +41,13 @@ lr_decline = False
 do_demi = True
 
 is_predict = True
-is_train = False
+is_train = True
 
 batch_size = 16
-epoches = 800
+epoches = 500
 
 model_path = './model.ckpt'
-learning_rate = 0.0003
+learning_rate = 0.0001
 momentum = 0.9
 
 weight_decay_l1 = 3e-6
@@ -258,8 +259,8 @@ if is_train:
 
     while epoch < epoches:
 
-        if do_demi and best_acc >= 0.7 and epoch > 200:
-            pseudo_set = get_pseudo_labels(unlabeled_set, model, threshold=0.75)
+        if do_demi and best_acc >= 0.7:
+            pseudo_set = get_pseudo_labels(unlabeled_set, model, threshold=0.7)
             concat_dataset = ConcatDataset([train_set, pseudo_set])
             train_loader = DataLoader(concat_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
 
