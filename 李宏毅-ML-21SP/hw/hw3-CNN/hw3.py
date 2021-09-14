@@ -85,7 +85,11 @@ train_tfm = transforms.Compose([
     transforms.Resize((128, 128)),
     # You may add some transforms here.
     # ToTensor() should be the last one of the transforms.
-
+    transforms.RandomResizedCrop((128, 128), scale=(0.8, 1), ratio=(0.8, 1.2)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ColorJitter(brightness=0.5),
+    transforms.RandomGrayscale(p=0.2),
+    transforms.RandomRotation(30),
     transforms.ToTensor(),
 ])
 
@@ -160,12 +164,17 @@ class Classifier(nn.Module):
             nn.Conv2d(128, 256, 3, 1, 1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.MaxPool2d(4, 4, 0),
+            nn.MaxPool2d(2, 2, 0),
+
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2, 0),
         )
         self.fc_layers = nn.Sequential(
-            nn.Linear(256 * 8 * 8, 256),
+            nn.Linear(256 * 8 * 8, 1024),
             nn.ReLU(),
-            nn.Linear(256, 256),
+            nn.Linear(1024, 256),
             nn.ReLU(),
             nn.Linear(256, 11)
         )
@@ -236,6 +245,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Initialize a model, and put it on the device specified.
 model = Classifier().to(device)
 model.device = device
+# ckpt = torch.load("./model.ckpt")
+# model.load_state_dict(ckpt)
+
 
 # For the classification task, we use cross-entropy as the measurement of performance.
 criterion = nn.CrossEntropyLoss()
