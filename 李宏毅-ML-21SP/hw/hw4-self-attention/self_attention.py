@@ -42,6 +42,79 @@ def get_device():
     return d
 
 
+
+
+class MyDataset(Dataset):
+    def __init__(self, data_dir, segment_len=128):
+        super(MyDataset, self).__init__()
+        self.data_dir = data_dir
+        self.segment_len = segment_len
+
+        mapping_path = Path(data_dir) / "mapping.json"
+        mapping = json.load(mapping_path.open())
+
+        metadata_path = Path(data_dir) / "metadata.json"
+        metadata = json.load(open(metadata_path))['speakers']
+
+        self.speaker2id = mapping["speaker2id"]
+        self.speaker_num = len(metadata.keys())
+        self.data = []
+
+        for speaker in metadata.keys():
+            for utterances in metadata[speaker]:
+                self.data.append([utterances["feature_path"], self.speaker2id[speaker]])
+
+    def __getitem__(self, idx):
+        feat_path, speaker = self.data[idx]
+
+        mel = torch.load(os.path.join(self.data_dir, feat_path))
+
+        if len(mel) > self.segment_len:
+            start = random.randint(0, len(mel) - self.segment_len)
+            mel = torch.FloatTensor(mel[start:start+self.segment_len])
+        else:
+            mel = torch.FloatTensor(mel)
+        speaker = torch.FloatTensor([speaker]).long()
+
+        return mel, speaker
+
+    def __len__(self):
+        return len(self.data)
+
+    def get_speaker_num(self):
+        return self.speaker_num
+
+
+class Inference(Dataset):
+    def __init__(self, data_dir):
+        super(Inference, self).__init__()
+        testdata_path = Path(data_dir) / 'testdata.json'
+        metadata = json.load(testdata_path.open())
+        self.data_dir = data_dir
+        self.data = metadata['utterances']
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        utterance = self.data[idx]
+        feat_path = utterance["feature_path"]
+        mel = torch.load(os.join(self.data_dir, feat_path))
+
+        return feat_path, mel
+
+def collate_batch(batch):
+    mel, speaker = zip(*batch)
+    mel = pad_sequence(mel, batch_first=True, padding_value=20)
+    return mel, torch.FloatTensor(speaker).long()
+
+
+def inference_collate_batch(batch):
+    feat_path, mels = zip(*batch)
+
+    return feat_path, torch.stack(mels)
+
+
 def collate_batch(batch):
     mel, speaker = zip(*batch)
     mel = pad_sequence(mel, batch_first=True, padding_value=20)
@@ -61,48 +134,7 @@ def get_dataloader(data_dir, batch_size, n_workers=0):
 
     return train_loader, valid_loader, speaker_num
 
-
-class MyDataset(Dataset):
-    def __init__(self, data_dir, segment_len=128):
-        super(MyDataset, self).__init__()
-        self.data_dir = data_dir
-        self.segment_len = segment_len
-
-        mapping_path = Path(data_dir) / "mapping.json"
-        mapping = json.load(mapping_path)
-
-        metadata_path = Path(data_dir) / "metadata.json"
-        metadata = json.load(metadata_path)
-
-        self.speaker2id = mapping["speaker2id"]
-        self.speaker_num = len(metadata.keys())
-        self.data = []
-
-        for speaker in metadata.keys():
-            for utterances in metadata[speaker]:
-                self.data.append([utterances["feature_path"], self.speaker2id[speaker]])
-
-    def __getitem__(self, idx):
-        feat_path, speaker = self.data[idx]
-
-        mel = torch.load(os.path.join.join(self.data_dir, feat_path))
-
-        if len(mel) > self.segment_len:
-            start = random.randint(0, len(mel) - self.segment_len)
-            mel = torch.FloatTensor(mel[start:start+self.segment_len])
-        else:
-            mel = torch.FloatTensor(mel)
-        speaker = torch.FloatTensor([speaker]).long()
-
-        return mel, speaker
-
-    def __len__(self):
-        return len(self.data)
-
-
-    def get_speaker_num(self):
-        return self.speaker_num
-
+# -------------------------------------------------------------------------------
 
 class Classifier(nn.Module):
     def __init__(self, d_model=80, n_spks=600):
@@ -110,15 +142,11 @@ class Classifier(nn.Module):
 
         self.pre_handle = nn.Linear(40, d_model)
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, dim_feedforward=256, nhead=2
+            d_model=d_model, dim_feedforward=256, nhead=1
         )
 
         self.fc_layer = nn.Sequential(
-            nn.Linear(d_model, 1024),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Dropout(p=dropout),
-            nn.Linear(1024, n_spks),
+            nn.Linear(d_model, n_spks),
         )
 
     def forward(self, mels):
@@ -166,7 +194,7 @@ def model_fn(batch, model, criterion, device):
 
     return all_loss, ce_loss, l1, l2, acc
 
-
+# learning rate descent -----------------------------------------------------------------------------
 def get_cosine_schedule_with_warmup(optimizer: Optimizer, num_warmup_steps: int,
                                     num_training_steps: int, num_cycles: float = 0.5, last_epoch: int = -1):
 
@@ -182,6 +210,7 @@ def get_cosine_schedule_with_warmup(optimizer: Optimizer, num_warmup_steps: int,
     return LambdaLR(optimizer, lr_lambda=lr_lambda, last_epoch=last_epoch)
 
 
+# functions about training and valid -----------------------------------------------------------------------------
 def valid(dataloader, model, criterion, device):
     model.eval()
     running_loss = 0.0
@@ -204,9 +233,13 @@ def valid(dataloader, model, criterion, device):
 
         return running_accuracy / len(dataloader)
 
+
 def train():
     device = get_device()
     train_loader, valid_loader, speaker_num = get_dataloader(data_dir=data_path, batch_size=batch_size)
+    train_iterator = iter(train_loader)
+
+
     print(f"[INFO] Finish Loading data!", flush=True)
 
     model = Classifier(n_spks=speaker_num).to(device)
@@ -231,7 +264,7 @@ def train():
 
     while step < total_steps:
         try:
-            batch = next(train_loader)
+            batch = next(train_iterator)
         except StopIteration:
             train_iterator = iter(train_loader)
             batch = next(train_iterator)
@@ -272,3 +305,6 @@ def train():
                 pbar.write(f"Step {step+1}, saving model with acc {best_acc:.4f}")
             pbar = tqdm(total=valid_steps, ncols=0, desc="Train", unit=' step')
     pbar.close()
+
+
+train()
