@@ -12,7 +12,7 @@ from tqdm.auto import tqdm
 
 train_tsfm = transforms.Compose([
     # reseize the image to a fixed shape
-    transforms.Resize((128, 128)),
+    transforms.RandomResizedCrop((128, 128)),
     # you can add some transforms here
     transforms.RandomChoice([
         transforms.AutoAugment(),
@@ -20,7 +20,7 @@ train_tsfm = transforms.Compose([
         transforms.AutoAugment(transforms.AutoAugmentPolicy.SVHN)
     ]),
     transforms.RandomHorizontalFlip(p=0.5),
-    transforms.RandomVerticalFlip(p=0.3),
+    # transforms.RandomVerticalFlip(p=0.3),
     transforms.ColorJitter(brightness=0.5),
     transforms.RandomAffine(degrees=30, translate=(0.2, 0.2), scale=(0.8, 1.2)),
     # transforms.RandomErasing(p=0.2, scale=(0.01, 0.1), ratio=(0.3, 3.3)),
@@ -41,19 +41,19 @@ lr_decline = False
 do_demi = True
 
 is_predict = True
-is_train = True
+is_train = False
 
 batch_size = 16
-epoches = 500
+epoches = 10
 
 model_path = './model.ckpt'
-learning_rate = 0.0001
+learning_rate = 0.00001
 momentum = 0.9
 
-weight_decay_l1 = 3e-6
-weight_decay_l2 = 3e-4
+weight_decay_l1 = 1e-5
+weight_decay_l2 = 1e-3
 
-early_stop = 80
+early_stop = 500
 
 
 # dataset
