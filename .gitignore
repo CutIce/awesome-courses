@@ -46,3 +46,14 @@ math/
 /李宏毅-ML-21SP/hw/hw3-CNN/food-11
 
 李宏毅-ML-21SP/hw/hw3-CNN/test.py
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/processed/test.pt
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/processed/training.pt
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/t10k-images-idx3-ubyte
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/t10k-images-idx3-ubyte.gz
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/t10k-labels-idx1-ubyte
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/t10k-labels-idx1-ubyte.gz
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/train-images-idx3-ubyte
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/train-images-idx3-ubyte.gz
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/train-labels-idx1-ubyte
+李宏毅-ML-21SP/hw/learn-pytorch/data/MNIST/raw/train-labels-idx1-ubyte.gz
+李宏毅-ML-21SP/hw/.ipynb_checkpoints/动手学CV-PyTorch-checkpoint.ipynb
