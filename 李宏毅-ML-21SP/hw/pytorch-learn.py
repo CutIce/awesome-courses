@@ -267,3 +267,26 @@ if mnist:
     ax2.plot(acces, color='b')
     ax2.set_title('Acc', fontsize=10, color='black')
     plt.show()
+
+
+
+# torch.stack
+# import torch
+# t1 = torch.tensor([[1, 2, 3],
+#                 [4, 5, 6],
+#                 [7, 8, 9]])
+# t2 = torch.tensor([[10, 11, 12],
+#                     [13, 14, 15],
+#                     [16, 17, 18]])
+
+# # print(t1)
+# # print(t2)
+# t3_0 = torch.stack((t1,t2), dim=0)
+# t3_1 = torch.stack((t1, t2), dim=1)
+# t3_2 = torch.stack((t1, t2), dim=2)
+# # t3_3 = torch.stack((t1, t2), dim=3)
+# print(t3_0)
+# print("---")
+# print(t3_1)
+# print("---")
+# print(t3_2)
